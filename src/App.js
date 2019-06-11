@@ -1,26 +1,106 @@
-import React from 'react';
-import logo from './logo.svg';
+import React, { Component } from 'react';
 import './App.css';
 
-function App() {
-  return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
-  );
-}
+export default class App extends Component {
+  state = {
+    value: '',
+    emails: [],
+    error: null,
+  };
 
-export default App;
+  handleChange = event => {
+    const value = event.target.value;
+    this.setState({ value, error: null });
+  };
+
+  handleKeyDown = event => {  
+    
+    if (['Enter', 'Tab', ','].includes(event.key)) { 
+      event.preventDefault();
+      const value = this.state.value.trim();
+
+      if (value && this.isValid(value)){
+        this.setState({
+          emails: [...this.state.emails, this.state.value], value: ''
+        });
+      }
+    }
+  };
+
+  handleDelete = eMail => {
+    this.setState({
+      emails: this.state.emails.filter(email => email !== eMail )
+    });
+  }
+
+  handlePaste = evt => {
+    evt.preventDefault();
+
+    const paste = evt.clipboardData.getData('text');
+    // eslint-disable-next-line no-useless-escape
+    const emails = paste.match(/[\w\d\.-]+@[\w\d\.-]+\.[\w\d\.-]+/g);
+
+    if (emails) {
+      const toBeAdded = emails.filter(email => !this.isInList(email));
+
+      this.setState({
+        emails: [...this.state.emails, ...toBeAdded]
+      });
+    }
+  };
+
+  // eslint-disable-next-line no-useless-escape
+  isEmail = email => /[\w\d\.-]+@[\w\d\.-]+\.[\w\d\.-]+/.test(email);
+
+  isInList = email => this.state.emails.includes(email);
+
+  isValid = email => {
+    let error = null;
+
+    if (!this.isEmail(email)) {
+      error = `${email} is not a valid email address.`;
+    }
+
+    if (this.isInList(email)){
+      error = `${email} has already been added.`;
+    }
+
+    if (error) {
+      this.setState({ error });
+      
+      return false;
+    }
+
+    return true;
+
+  }
+
+
+  render() {    
+    return (
+      <main className="wrapper">
+        
+        <input 
+          className={'input ' + (this.state.error && ' has-error')}
+          placeholder='Type or paste email addresses and press `Enter`' 
+          value={this.state.value} 
+          onChange={this.handleChange} 
+          onKeyDown={this.handleKeyDown}
+          onPaste={this.handlePaste}
+        />
+        {
+          this.state.emails.map(email => 
+            <div className="tag-item" key={email}>
+              {email}
+              <button
+                className="button"
+                type="button"      
+                onClick={() => this.handleDelete(email)}> ×
+              </button>
+            </div>)
+        }
+        {this.state.error && <p className="error">{this.state.error}</p>}
+      </main>
+    );
+  }
+}
